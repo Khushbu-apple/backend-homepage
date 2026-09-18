@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Khushbu Dash — Website Admin</title>
+<style>
+:root{--ink:#102033;--muted:#66758a;--bg:#f5f7fb;--card:#fff;--line:#e3e8f0;--accent:#1769e0}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1100px;margin:auto;padding:32px 20px 70px}.top{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:25px}
+h1{margin:0;font-size:32px;letter-spacing:-.03em}h2{margin-top:0}.sub{color:var(--muted)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0}.tab{border:1px solid var(--line);background:#fff;padding:11px 16px;border-radius:999px;cursor:pointer;font-weight:700}.tab.active{background:var(--ink);color:#fff}
+.panel{display:none}.panel.active{display:block}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:18px;box-shadow:0 8px 30px #1020330a}
+label{display:block;font-weight:750;font-size:13px;margin:14px 0 6px}input,textarea,select{width:100%;padding:12px 13px;border:1px solid #d7dee8;border-radius:10px;font:inherit}textarea{min-height:100px;resize:vertical}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+button{border:0;border-radius:10px;padding:11px 15px;font-weight:750;cursor:pointer;background:#102033;color:#fff}.secondary{background:#edf2f7;color:#102033}.danger{background:#b42318}.notice{padding:13px 15px;border-radius:12px;background:#eef5ff;color:#234a83;margin-bottom:18px}
+.item{border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}.item strong{display:block}.item small{color:var(--muted)}
+pre{white-space:pre-wrap;background:#0b1422;color:#dce7f5;padding:15px;border-radius:12px;overflow:auto;font-size:12px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>Website Admin</h1><div class="sub">Dr. Khushbu Dash · edit content without touching website code</div></div>
+    <button class="secondary" onclick="downloadAll()">Download website data</button>
+  </div>
+  <div class="notice"><b>How this works:</b> edit the forms below, click Save, then download the updated data files. Your live website can use these files to display the latest publications and team members.</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('pubs',this)">Publications</button>
+    <button class="tab" onclick="showTab('team',this)">Team</button>
+    <button class="tab" onclick="showTab('profile',this)">Profile</button>
+  </div>
+
+  <section id="pubs" class="panel active">
+    <div class="card">
+      <h2>Add / Edit Publication</h2>
+      <input type="hidden" id="pubIndex" value="-1">
+      <label>Title</label><input id="ptitle" placeholder="Full publication title">
+      <div class="grid">
+        <div><label>Authors</label><input id="pauthors" placeholder="Authors"></div>
+        <div><label>Year</label><input id="pyear" placeholder="2025"></div>
+      </div>
+      <div class="grid">
+        <div><label>Journal / Conference</label><input id="pvenue" placeholder="Journal name"></div>
+        <div><label>Type</label><select id="ptype"><option>Journal Article</option><option>Conference Paper</option><option>Conference Proceeding</option><option>Book Chapter</option></select></div>
+      </div>
+      <label>DOI or publication URL (optional)</label><input id="pdoi" placeholder="https://doi.org/...">
+      <div class="actions"><button onclick="savePub()">Save publication</button><button class="secondary" onclick="clearPub()">Clear form</button></div>
+    </div>
+    <div class="card"><h2>Current Publications</h2><div id="pubList"></div></div>
+  </section>
+
+  <section id="team" class="panel">
+    <div class="card">
+      <h2>Add / Edit Team Member</h2>
+      <input type="hidden" id="teamIndex" value="-1">
+      <label>Name</label><input id="tname" placeholder="Researcher name">
+      <div class="grid">
+        <div><label>Role</label><input id="trole" placeholder="PhD Scholar / Research Associate"></div>
+        <div><label>Research Area</label><input id="tarea" placeholder="Research topic"></div>
+      </div>
+      <div class="grid">
+        <div><label>Email</label><input id="temail" placeholder="name@example.com"></div>
+        <div><label>Photo filename</label><input id="tphoto" placeholder="team-name.jpg"></div>
+      </div>
+      <div class="actions"><button onclick="saveTeam()">Save team member</button><button class="secondary" onclick="clearTeam()">Clear form</button></div>
+    </div>
+    <div class="card"><h2>Current Team</h2><div id="teamList"></div></div>
+  </section>
+
+  <section id="profile" class="panel">
+    <div class="card">
+      <h2>Profile information</h2>
+      <label>Display name</label><input id="dname" value="Dr. Khushbu Dash">
+      <label>Headline</label><input id="headline" value="Materials Scientist · Researcher · Educator">
+      <label>Short biography</label><textarea id="bio">Research at the intersection of advanced materials, high-entropy systems, corrosion science, microstructural engineering and AI-enabled materials research.</textarea>
+      <label>Contact email</label><input id="email" value="d_khushbu@ch.amrita.edu">
+      <label>Google Scholar URL</label><input id="scholar" value="https://scholar.google.com/citations?user=OZv8micAAAAJ&hl=en">
+      <div class="actions"><button onclick="saveProfile()">Save profile</button></div>
+    </div>
+  </section>
+</div>
+<script>
+let pubs=[], team=[];
+const $=id=>document.getElementById(id);
+function load(){
+  try{pubs=JSON.parse(localStorage.getItem('khushbu_pubs')||'[]')}catch(e){pubs=[]}
+  try{team=JSON.parse(localStorage.getItem('khushbu_team')||'[]')}catch(e){team=[]}
+  if(!pubs.length) pubs=[{"title":"Machine Learning-Based Prediction of Atmospheric Corrosion Rates Using Environmental and Material Parameters","authors":"Dr. Khushbu Dash et al.","venue":"Coatings","year":"2025","doi":"","type":"Journal Article"}];
+  if(!team.length) team=[{"name":"Dr. Khushbu Dash","role":"Principal Investigator / Faculty","area":"Advanced Materials, Corrosion, AI for Materials","email":"d_khushbu@ch.amrita.edu","photo":"profile.jpg"}];
+  render();
+}
+function persist(){localStorage.setItem('khushbu_pubs',JSON.stringify(pubs));localStorage.setItem('khushbu_team',JSON.stringify(team));render()}
+function showTab(id,btn){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');btn.classList.add('active')}
+function render(){
+  $('pubList').innerHTML=pubs.length?pubs.map((p,i)=>`<div class="item"><strong>${esc(p.title)}</strong><small>${esc(p.authors)} · ${esc(p.venue)} · ${esc(p.year)} · ${esc(p.type)}</small><div class="actions"><button onclick="editPub(${i})">Edit</button><button class="danger" onclick="delPub(${i})">Delete</button></div></div>`).join(''):'<p class="sub">No publications yet.</p>';
+  $('teamList').innerHTML=team.length?team.map((t,i)=>`<div class="item"><strong>${esc(t.name)}</strong><small>${esc(t.role)} · ${esc(t.area)} · ${esc(t.email||'')}</small><div class="actions"><button onclick="editTeam(${i})">Edit</button><button class="danger" onclick="delTeam(${i})">Delete</button></div></div>`).join(''):'<p class="sub">No team members yet.</p>';
+}
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function savePub(){let i=+$('pubIndex').value,p={title:$('ptitle').value.trim(),authors:$('pauthors').value.trim(),year:$('pyear').value.trim(),venue:$('pvenue').value.trim(),doi:$('pdoi').value.trim(),type:$('ptype').value};if(!p.title)return alert('Please enter a title.');i<0?pubs.unshift(p):pubs[i]=p;persist();clearPub()}
+function editPub(i){let p=pubs[i];$('pubIndex').value=i;$('ptitle').value=p.title;$('pauthors').value=p.authors;$('pyear').value=p.year;$('pvenue').value=p.venue;$('pdoi').value=p.doi;$('ptype').value=p.type;scrollTo(0,0)}
+function delPub(i){if(confirm('Delete this publication?')){pubs.splice(i,1);persist()}}
+function clearPub(){$('pubIndex').value=-1;['ptitle','pauthors','pyear','pvenue','pdoi'].forEach(x=>$(x).value='')}
+function saveTeam(){let i=+$('teamIndex').value,t={name:$('tname').value.trim(),role:$('trole').value.trim(),area:$('tarea').value.trim(),email:$('temail').value.trim(),photo:$('tphoto').value.trim()};if(!t.name)return alert('Please enter a name.');i<0?team.push(t):team[i]=t;persist();clearTeam()}
+function editTeam(i){let t=team[i];$('teamIndex').value=i;$('tname').value=t.name;$('trole').value=t.role;$('tarea').value=t.area;$('temail').value=t.email||'';$('tphoto').value=t.photo||'';scrollTo(0,0)}
+function delTeam(i){if(confirm('Delete this team member?')){team.splice(i,1);persist()}}
+function clearTeam(){$('teamIndex').value=-1;['tname','trole','tarea','temail','tphoto'].forEach(x=>$(x).value='')}
+function saveProfile(){localStorage.setItem('khushbu_profile',JSON.stringify({name:$('dname').value,headline:$('headline').value,bio:$('bio').value,email:$('email').value,scholar:$('scholar').value}));alert('Profile saved on this browser.')}
+function download(name,data){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function downloadAll(){download('publications.json',pubs);setTimeout(()=>download('team.json',team),300);alert('The two updated data files have been downloaded.')}
+load();
+</script>
+</body></html>
